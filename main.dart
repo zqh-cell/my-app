@@ -122,7 +122,7 @@ class _AiChatPageState extends State<AiChatPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://open.bigmodel.cn/api/paas/v4/chat/completions'),
+        Uri.parse('https://api.deepseek.com/chat/completions'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $_apiKey' },
         body: jsonEncode({
           "model": "glm-4-flash",
@@ -379,7 +379,7 @@ class _AiDivinationDetailPageState extends State<AiDivinationDetailPage> {
   final String _apiKey = 'sk-1f5127571a4843e3af5a2581a0342f40';
 
   Future<void> _startDivination() async {
-    final input = _inputController.text.trim();
+    final input = _inputController.text.();
     if (input.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入信息'))); return; }
     
     setState(() { _isLoading = true; _resultText = ''; });
@@ -389,7 +389,7 @@ class _AiDivinationDetailPageState extends State<AiDivinationDetailPage> {
         Uri.parse('https://open.bigmodel.cn/api/paas/v4/chat/completions'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $_apiKey' },
         body: jsonEncode({
-          "model": "glm-4-flash",
+          "model": "deepseek-chat",
           "messages": [
             {"role": "system", "content": "你是一个精通${widget.type}的玄学大师。请根据用户提供的信息，模拟排盘，并用通俗、专业且简短（200字以内）的语言给出解析和建议。不知道的不要瞎编。"},
             {"role": "user", "content": input}
