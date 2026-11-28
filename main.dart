@@ -122,10 +122,11 @@ class _AiChatPageState extends State<AiChatPage> {
 
     try {
       final response = await http.post(
+        // ✅ 已经换成 DeepSeek 的接口
         Uri.parse('https://api.deepseek.com/chat/completions'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $_apiKey' },
         body: jsonEncode({
-          "model": "glm-4-flash",
+          "model": "deepseek-chat", // ✅ 已经换成 DeepSeek 的模型
           "messages": [
             {"role": "system", "content": "你现在是一个严谨的道教法脉资料检索助手。你的核心原则是【宁可说不知道，也绝不胡编乱造】。基础常识客观回答；涉及秘传口诀、科仪步骤或不确定细节，直接回答：\"福生无量天尊。此法门属口传心授或内部秘传，查无公开典籍记载。为了传承的严谨性，不敢妄言，建议您请教您的传度师父。\"绝不允许自己发明法主或口诀。语气恭敬，称用户为善信。"},
             {"role": "user", "content": textToSend}
@@ -379,17 +380,18 @@ class _AiDivinationDetailPageState extends State<AiDivinationDetailPage> {
   final String _apiKey = 'sk-1f5127571a4843e3af5a2581a0342f40';
 
   Future<void> _startDivination() async {
-    final input = _inputController.text.();
+    final input = _inputController.text.trim();
     if (input.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入信息'))); return; }
     
     setState(() { _isLoading = true; _resultText = ''; });
 
     try {
       final response = await http.post(
-        Uri.parse('https://open.bigmodel.cn/api/paas/v4/chat/completions'),
+        // ✅ 已经换成 DeepSeek 的接口
+        Uri.parse('https://api.deepseek.com/chat/completions'),
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer $_apiKey' },
         body: jsonEncode({
-          "model": "deepseek-chat",
+          "model": "deepseek-chat", // ✅ 已经换成 DeepSeek 的模型
           "messages": [
             {"role": "system", "content": "你是一个精通${widget.type}的玄学大师。请根据用户提供的信息，模拟排盘，并用通俗、专业且简短（200字以内）的语言给出解析和建议。不知道的不要瞎编。"},
             {"role": "user", "content": input}
@@ -533,6 +535,7 @@ class BookReaderPage extends StatelessWidget {
 }
 
 // ================= 新增：风水电子罗盘页面 =================
+// ================= 风水电子罗盘页面（图片版） =================
 class CompassPage extends StatefulWidget {
   const CompassPage({super.key});
 
@@ -549,9 +552,14 @@ class _CompassPageState extends State<CompassPage> {
     super.initState();
     FlutterCompass.events?.listen((event) {
       if (event.heading != null) {
-        setState(() { _heading = event.heading!; _isSensorAvailable = true; });
+        setState(() {
+          _heading = event.heading!;
+          _isSensorAvailable = true;
+        });
       } else {
-        setState(() { _isSensorAvailable = false; });
+        setState(() {
+          _isSensorAvailable = false;
+        });
       }
     });
   }
@@ -561,86 +569,82 @@ class _CompassPageState extends State<CompassPage> {
     final rotateAngle = -_heading * (math.pi / 180);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A1A),
-      appBar: AppBar(title: const Text('风水二十四山罗盘'), backgroundColor: Colors.transparent, foregroundColor: Colors.amber),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (!_isSensorAvailable)
-              const Padding(padding: EdgeInsets.only(bottom: 20), child: Text('未检测到磁力计，使用静态展示', style: TextStyle(color: Colors.white54, fontSize: 14))),
-            Container(
-              width: 320, height: 320,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.amber.withOpacity(0.5), width: 2),
-                boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.1), blurRadius: 30, spreadRadius: 5)],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Transform.rotate(
-                    angle: rotateAngle,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(width: 300, height: 300, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white24, width: 1))),
-                        CustomPaint(size: const Size(300, 300), painter: CompassPainter()),
-                      ],
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text('罗盘'), 
+        backgroundColor: Colors.white, 
+        foregroundColor: Colors.black,
+        elevation: 1,
+      ),
+      body: Column(
+        children: [
+          // 顶部度数显示区域
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, spreadRadius: 2)
+              ]
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${_heading.toStringAsFixed(0)}°', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                const Icon(Icons.arrow_drop_up, color: Colors.teal, size: 30),
+                Text(_getDirectionName(_heading), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+
+          if (!_isSensorAvailable)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 20),
+              child: Text('未检测到磁力计，使用静态展示', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
+            ),
+
+          // 核心罗盘旋转区域
+          Expanded(
+            child: Center(
+              child: Transform.rotate(
+                angle: rotateAngle,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.9, 
+                  height: MediaQuery.of(context).size.width * 0.9,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    // ⚠️ 这里读取你的图片
+                    image: DecorationImage(
+                      image: AssetImage('assets/luopan.png'),
+                      fit: BoxFit.contain,
                     ),
                   ),
-                  const Icon(Icons.add, color: Colors.redAccent, size: 40),
-                  const Icon(Icons.arrow_drop_down, color: Colors.redAccent, size: 40),
-                  Positioned(
-                    bottom: 60,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber)),
-                      child: Text('${_heading.toStringAsFixed(0)}°', style: const TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 40),
-            const Text('将手机平放，红色箭头指向即为当前朝向', style: TextStyle(color: Colors.white54, fontSize: 14)),
-            const SizedBox(height: 20),
-            Text(_getDirectionName(_heading), style: const TextStyle(color: Colors.amber, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 4)),
-          ],
-        ),
+          ),
+
+          // 底部固定的十字准星
+          Container(
+            margin: const EdgeInsets.only(bottom: 40),
+            child: const Icon(Icons.add, color: Colors.redAccent, size: 50),
+          )
+        ],
       ),
     );
   }
 
   String _getDirectionName(double heading) {
-    const directions = ['子 (正北)', '癸', '丑', '艮', '寅', '甲', '卯 (正东)', '乙', '辰', '巽', '巳', '丙', '午 (正南)', '丁', '未', '坤', '申', '庚', '酉 (正西)', '辛', '戌', '乾', '亥', '壬'];
-    int index = ((heading + 7.5) / 15).floor() % 24;
-    return directions[index];
+    if (heading >= 337.5 || heading < 22.5) return '正北';
+    if (heading >= 22.5 && heading < 67.5) return '东北';
+    if (heading >= 67.5 && heading < 112.5) return '正东';
+    if (heading >= 112.5 && heading < 157.5) return '东南';
+    if (heading >= 157.5 && heading < 202.5) return '正南';
+    if (heading >= 202.5 && heading < 247.5) return '西南';
+    if (heading >= 247.5 && heading < 292.5) return '正西';
+    if (heading >= 292.5 && heading < 337.5) return '西北';
+    return '';
   }
-}
-
-class CompassPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final paint = Paint()..color = Colors.amber..strokeWidth = 2..style = PaintingStyle.stroke;
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-
-    for (int i = 0; i < 24; i++) {
-      final angle = i * 15 * (math.pi / 180);
-      final p1 = Offset(center.dx + radius * 0.85 * math.cos(angle), center.dy + radius * 0.85 * math.sin(angle));
-      final p2 = Offset(center.dx + radius * 0.95 * math.cos(angle), center.dy + radius * 0.95 * math.sin(angle));
-      canvas.drawLine(p1, p2, paint);
-
-      const names = ['子', '癸', '丑', '艮', '寅', '甲', '卯', '乙', '辰', '巽', '巳', '丙', '午', '丁', '未', '坤', '申', '庚', '酉', '辛', '戌', '乾', '亥', '壬'];
-      textPainter.text = TextSpan(text: names[i], style: const TextStyle(color: Colors.white70, fontSize: 12));
-      textPainter.layout();
-      final textOffset = Offset(center.dx + radius * 0.7 * math.cos(angle) - textPainter.width / 2, center.dy + radius * 0.7 * math.sin(angle) - textPainter.height / 2);
-      textPainter.paint(canvas, textOffset);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
